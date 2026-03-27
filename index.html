@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Banging Crew — 「緊極」有限公司</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --black: #0a0a0a;
+      --white: #f5f5f5;
+      --accent: #b84040;
+      --accent-light: #d05050;
+      --grey: #141414;
+      --mid-grey: #2a2a2a;
+      --light-grey: #888;
+    }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 40px;
+      background: rgba(10,10,10,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--mid-grey);
+    }
+    .nav-logo { font-size: 1.1rem; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; }
+    .nav-logo span { color: var(--accent-light); }
+    .nav-sub { font-size: 0.65rem; letter-spacing: 0.2em; color: var(--light-grey); margin-top: 3px; }
+    .nav-cta {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--white); text-decoration: none;
+      background: var(--accent); padding: 10px 22px;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: var(--accent-light); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: grid; grid-template-columns: 1fr 1fr;
+      align-items: center; padding-top: 80px; overflow: hidden;
+    }
+    .hero-content { padding: 60px 40px 60px 60px; }
+    .hero-eyebrow { font-size: 0.72rem; letter-spacing: 0.35em; text-transform: uppercase; color: var(--accent-light); margin-bottom: 28px; }
+    .hero-title { font-size: clamp(52px, 7vw, 112px); font-weight: 900; line-height: 0.88; text-transform: uppercase; letter-spacing: -0.03em; margin-bottom: 32px; }
+    .hero-title .accent { color: var(--accent-light); }
+    .hero-divider { width: 48px; height: 3px; background: var(--accent); margin-bottom: 28px; }
+    .hero-tagline { font-size: clamp(13px, 1.5vw, 16px); color: var(--light-grey); letter-spacing: 0.12em; text-transform: uppercase; }
+    .hero-logo { position: relative; height: 100vh; overflow: hidden; }
+    .hero-logo img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
+    .hero-logo::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to right, var(--black) 0%, transparent 30%);
+    }
+
+    /* ── ABOUT ── */
+    .about-section {
+      padding: 100px 60px; max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+    }
+    .section-label { font-size: 0.68rem; letter-spacing: 0.35em; text-transform: uppercase; color: var(--accent-light); margin-bottom: 16px; }
+    .section-title { font-size: clamp(32px, 4vw, 56px); font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em; line-height: 1; margin-bottom: 32px; }
+    .about-body { font-size: 1rem; line-height: 1.8; color: #aaa; }
+    .about-body p + p { margin-top: 20px; }
+    .about-body strong { color: var(--white); }
+    .name-display { font-size: clamp(64px, 10vw, 120px); font-weight: 900; line-height: 0.85; letter-spacing: -0.04em; color: var(--accent); opacity: 0.15; user-select: none; text-align: right; }
+
+    /* ── WEEKLY STATS ── */
+    .stats-section {
+      background: var(--accent);
+      padding: 48px 60px;
+    }
+    .stats-inner {
+      max-width: 1000px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    }
+    .stat-block { padding: 0 32px; }
+    .stat-block + .stat-block { border-left: 1px solid rgba(255,255,255,0.25); }
+    .stat-week { font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 8px; }
+    .stat-num { font-size: clamp(36px, 5vw, 64px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; color: var(--white); }
+    .stat-unit { font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-top: 6px; }
+
+    /* ── ACTIVITY FEED ── */
+    .feed-section {
+      background: var(--grey);
+      border-top: 1px solid var(--mid-grey);
+      border-bottom: 1px solid var(--mid-grey);
+      padding: 80px 60px;
+    }
+    .feed-inner { max-width: 1000px; margin: 0 auto; }
+    .feed-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 36px; }
+    .feed-strava-link { font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent-light); text-decoration: none; border-bottom: 1px solid var(--accent); padding-bottom: 2px; }
+
+    .activity-list { display: flex; flex-direction: column; gap: 2px; }
+
+    .activity-card {
+      display: grid;
+      grid-template-columns: 48px 1fr auto;
+      gap: 20px;
+      align-items: center;
+      padding: 20px 24px;
+      background: var(--black);
+      border: 1px solid transparent;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .activity-card:hover { border-color: var(--mid-grey); background: #111; }
+
+    .activity-index {
+      font-size: 1.4rem; font-weight: 900; color: var(--mid-grey);
+      letter-spacing: -0.02em; text-align: center;
+    }
+
+    .activity-name { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
+    .activity-athlete { font-size: 0.72rem; letter-spacing: 0.1em; color: var(--light-grey); text-transform: uppercase; }
+
+    .activity-stats { display: flex; gap: 28px; text-align: right; }
+    .activity-stat-val { font-size: 1.1rem; font-weight: 900; letter-spacing: -0.01em; }
+    .activity-stat-val.accent { color: var(--accent-light); }
+    .activity-stat-label { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--light-grey); margin-top: 2px; }
+
+    .activity-date-col { font-size: 0.65rem; letter-spacing: 0.1em; color: var(--light-grey); text-transform: uppercase; white-space: nowrap; text-align: right; margin-top: 6px; }
+
+    /* ── NEXT RUN ── */
+    .next-run-section { padding: 80px 60px; max-width: 1000px; margin: 0 auto; }
+    .next-run-grid { display: grid; grid-template-columns: 1fr 1.6fr; gap: 40px; align-items: start; }
+
+    .next-run-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: var(--white);
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      padding: 6px 14px; margin-bottom: 28px;
+    }
+
+    .meta-stack { display: flex; flex-direction: column; gap: 20px; }
+    .meta-item { border-left: 3px solid var(--accent); padding-left: 16px; }
+    .meta-label { font-size: 0.62rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--light-grey); margin-bottom: 5px; }
+    .meta-value { font-size: 1.15rem; font-weight: 700; }
+
+    #next-run-map { width: 100%; height: 380px; border: 1px solid var(--mid-grey); border-radius: 4px; overflow: hidden; }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 48px 60px; border-top: 1px solid var(--mid-grey);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;
+    }
+    .footer-logo { font-size: 1rem; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; }
+    .footer-logo span { color: var(--accent-light); }
+    .footer-text { font-size: 0.7rem; color: var(--light-grey); letter-spacing: 0.1em; margin-top: 4px; }
+    .strava-link {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--accent-light); text-decoration: none;
+      border: 1px solid var(--accent); padding: 10px 22px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .strava-link:hover { background: var(--accent); color: var(--white); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: 16px 20px; }
+      .hero { grid-template-columns: 1fr; min-height: auto; }
+      .hero-content { padding: 100px 24px 40px; order: 2; }
+      .hero-logo { height: 60vw; order: 1; }
+      .hero-logo::after { background: linear-gradient(to bottom, transparent 60%, var(--black) 100%); }
+      .about-section { grid-template-columns: 1fr; padding: 60px 24px; gap: 40px; }
+      .stats-section { padding: 40px 24px; }
+      .stats-inner { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+      .stat-block + .stat-block { border-left: none; }
+      .stat-block:nth-child(3), .stat-block:nth-child(4) { border-top: 1px solid rgba(255,255,255,0.25); padding-top: 24px; }
+      .feed-section { padding: 60px 24px; }
+      .activity-stats { gap: 16px; }
+      .next-run-section { padding: 60px 24px; }
+      .next-run-grid { grid-template-columns: 1fr; }
+      footer { padding: 36px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div>
+      <div class="nav-logo">Banging <span>Crew</span></div>
+      <div class="nav-sub">「緊極」有限公司</div>
+    </div>
+    <a class="nav-cta" href="https://www.strava.com/clubs/2006097" target="_blank">Strava Club ↗</a>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-eyebrow">Hong Kong Running Crew</div>
+      <h1 class="hero-title">Bang<span class="accent">ing</span><br>Crew</h1>
+      <div class="hero-divider"></div>
+      <div class="hero-tagline">「緊極」有限公司</div>
+    </div>
+    <div class="hero-logo">
+      <img src="logo.jpeg" alt="Banging Crew Logo" />
+    </div>
+  </div>
+
+  <!-- ABOUT -->
+  <div class="about-section">
+    <div>
+      <div class="section-label">Our Story</div>
+      <h2 class="section-title">點解<br>「緊極」？</h2>
+      <div class="about-body">
+        <p>我哋叫「緊極」，係因為對跑步嘅渴望已經<strong>緊到一個極點</strong>。唔係工作、唔係其他事，係跑步令我哋有呢種感覺。</p>
+        <p>唔跑就好緊——身體緊、心情緊、成個人都唔自在。跑完先舒服，先覺得自己返晒嚟。</p>
+        <p>呢種「緊」唔係壓力，係<strong>熱愛</strong>。係我哋行落去嘅理由，係我哋每次約跑嘅動力。</p>
+        <p style="color:#666; font-size:0.85rem; margin-top:28px; letter-spacing:0.05em;">We run because we can't not run.</p>
+      </div>
+    </div>
+    <div class="name-display">緊<br>極</div>
+  </div>
+
+  <!-- WEEKLY STATS BAR -->
+  <div class="stats-section">
+    <div class="stats-inner" id="stats-inner">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+  <!-- ACTIVITY FEED -->
+  <div class="feed-section">
+    <div class="feed-inner">
+      <div class="feed-header">
+        <div>
+          <div class="section-label">Recent Runs</div>
+          <div class="section-title" style="margin-bottom:0; font-size: clamp(28px,3vw,44px);">Club Activities</div>
+        </div>
+        <a class="feed-strava-link" href="https://www.strava.com/clubs/2006097" target="_blank">View all on Strava ↗</a>
+      </div>
+      <div class="activity-list" id="activity-list">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- NEXT RUN -->
+  <div style="border-bottom: 1px solid var(--mid-grey);">
+    <div class="next-run-section">
+      <div class="section-label">Coming Up</div>
+      <div class="section-title" style="font-size: clamp(28px,3vw,44px); margin-bottom: 36px;">Next Run</div>
+      <div class="next-run-grid">
+        <div class="next-run-info">
+          <div class="next-run-badge">Upcoming Event</div>
+          <div class="meta-stack" id="next-run-meta">
+            <!-- filled by JS -->
+          </div>
+        </div>
+        <div id="next-run-map"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div>
+      <div class="footer-logo">Banging <span>Crew</span></div>
+      <div class="footer-text">「緊極」有限公司 · Hong Kong</div>
+    </div>
+    <a class="strava-link" href="https://www.strava.com/clubs/2006097" target="_blank">Join on Strava ↗</a>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="data.js"></script>
+  <script>
+    // ════════════════════════════════════════════════
+    // RENDER
+    // ════════════════════════════════════════════════
+
+    // Pace calculator mm:ss/km
+    function calcPace(distKm, timeStr) {
+      const parts = timeStr.split(':').map(Number);
+      const totalSec = parts.length === 3
+        ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+        : parts[0] * 60 + parts[1];
+      const paceSec = totalSec / distKm;
+      const m = Math.floor(paceSec / 60);
+      const s = Math.round(paceSec % 60);
+      return `${m}:${s.toString().padStart(2,'0')}`;
+    }
+
+    // Weekly stats
+    document.getElementById('stats-inner').innerHTML = `
+      <div class="stat-block">
+        <div class="stat-week">${weeklyStats.week}</div>
+        <div class="stat-num">${weeklyStats.runs}</div>
+        <div class="stat-unit">Recent Runs</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-week">&nbsp;</div>
+        <div class="stat-num">${weeklyStats.distance}</div>
+        <div class="stat-unit">Kilometres</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-week">&nbsp;</div>
+        <div class="stat-num">${weeklyStats.time}</div>
+        <div class="stat-unit">Total Time</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-week">&nbsp;</div>
+        <div class="stat-num">${weeklyStats.elevation}</div>
+        <div class="stat-unit">Metres Climbed</div>
+      </div>
+    `;
+
+    // Activity feed
+    document.getElementById('activity-list').innerHTML = activities.map((a, i) => `
+      <div class="activity-card">
+        <div class="activity-index">0${i + 1}</div>
+        <div class="activity-main">
+          <div class="activity-name">${a.name}</div>
+          <div class="activity-athlete">${a.athlete}</div>
+        </div>
+        <div class="activity-stats">
+          <div class="activity-stat">
+            <div class="activity-stat-val accent">${a.dist} km</div>
+            <div class="activity-stat-label">Distance</div>
+          </div>
+          <div class="activity-stat">
+            <div class="activity-stat-val">${a.time}</div>
+            <div class="activity-stat-label">Time</div>
+          </div>
+          <div class="activity-stat">
+            <div class="activity-stat-val">${calcPace(a.dist, a.time)}</div>
+            <div class="activity-stat-label">/ km</div>
+          </div>
+          <div class="activity-stat">
+            <div class="activity-stat-val">${a.elev} m</div>
+            <div class="activity-stat-label">Elev</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    // Next run meta
+    document.getElementById('next-run-meta').innerHTML = `
+      <div class="meta-item">
+        <div class="meta-label">Date</div>
+        <div class="meta-value">${nextEvent.date}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Time</div>
+        <div class="meta-value">${nextEvent.time}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Meeting Point</div>
+        <div class="meta-value" style="white-space: pre-line">${nextEvent.location}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Schedule</div>
+        <div class="meta-value" style="font-size: 0.9rem; color: var(--accent-light)">${nextEvent.recurring}</div>
+      </div>
+    `;
+
+    // Map
+    const map = L.map('next-run-map', {
+      center: [nextEvent.lat, nextEvent.lng],
+      zoom: 15,
+      zoomControl: true,
+      scrollWheelZoom: false
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© <a href="https://carto.com/">CARTO</a>',
+      maxZoom: 19
+    }).addTo(map);
+
+    const markerIcon = L.divIcon({
+      className: '',
+      html: `<div style="width:14px;height:14px;background:#b84040;border:3px solid #f5f5f5;border-radius:50%;box-shadow:0 0 0 5px rgba(184,64,64,0.3);"></div>`,
+      iconSize: [14, 14], iconAnchor: [7, 7]
+    });
+
+    L.marker([nextEvent.lat, nextEvent.lng], { icon: markerIcon })
+      .addTo(map)
+      .bindPopup(`<strong>${nextEvent.location}</strong>`)
+      .openPopup();
+  </script>
+</body>
+</html>
